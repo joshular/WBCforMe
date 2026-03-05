@@ -282,6 +282,74 @@ function getGamesForTeamOnDate(mlbTeamId, dateStr) {
     .sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
 }
 
+// ---- Calendar ----
+
+function getGameDatesForTeam(mlbTeamId) {
+  const players = state.teamPlayerMap?.get(mlbTeamId) || [];
+  if (players.length === 0) return new Set();
+  const wbcTeamIds = new Set(players.map(p => p.wbcTeamId));
+  const dates = new Set();
+  for (const game of state.schedule) {
+    const awayId = game.teams?.away?.team?.id;
+    const homeId = game.teams?.home?.team?.id;
+    if (wbcTeamIds.has(awayId) || wbcTeamIds.has(homeId)) {
+      const d = game.officialDate || game.gameDate?.slice(0, 10);
+      if (d) dates.add(d);
+    }
+  }
+  return dates;
+}
+
+function renderCalendar() {
+  const dropdown = $('#calendar-dropdown');
+  const gameDates = getGameDatesForTeam(state.selectedTeamId);
+  const selected = state.selectedDate;
+  const today = todayStr();
+
+  // March 2026: starts on Sunday (day 0), 31 days
+  const year = 2026, month = 2; // 0-indexed: 2 = March
+  const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  let html = '<div class="calendar-header">';
+  html += dayLabels.map(d => `<span class="calendar-day-label">${d}</span>`).join('');
+  html += '</div><div class="calendar-grid">';
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    html += '<span class="calendar-day empty"></span>';
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const classes = ['calendar-day'];
+    if (gameDates.has(dateStr)) classes.push('has-game');
+    if (dateStr === selected) classes.push('selected');
+    if (dateStr === today) classes.push('today');
+    if (dateStr < WBC_START || dateStr > WBC_END) classes.push('outside-range');
+    html += `<button class="${classes.join(' ')}" data-date="${dateStr}">${day}</button>`;
+  }
+
+  html += '</div>';
+  dropdown.innerHTML = html;
+}
+
+function toggleCalendar() {
+  const dropdown = $('#calendar-dropdown');
+  const isOpen = dropdown.classList.contains('open');
+  if (isOpen) {
+    dropdown.classList.remove('open');
+  } else {
+    renderCalendar();
+    dropdown.classList.add('open');
+  }
+}
+
+function closeCalendar() {
+  $('#calendar-dropdown').classList.remove('open');
+}
+
 // ---- Rendering ----
 
 function showScreen(name) {
@@ -651,6 +719,7 @@ function setupEvents() {
   // Date navigation
   $('#prev-day').addEventListener('click', () => {
     state.selectedDate = shiftDate(state.selectedDate, -1);
+    closeCalendar();
     updateURL();
     renderDate();
     renderGames();
@@ -658,6 +727,7 @@ function setupEvents() {
 
   $('#next-day').addEventListener('click', () => {
     state.selectedDate = shiftDate(state.selectedDate, 1);
+    closeCalendar();
     updateURL();
     renderDate();
     renderGames();
@@ -669,6 +739,26 @@ function setupEvents() {
       updateURL();
       renderDate();
       renderGames();
+    }
+  });
+
+  // Calendar toggle
+  $('#calendar-toggle').addEventListener('click', toggleCalendar);
+
+  $('#calendar-dropdown').addEventListener('click', (e) => {
+    const btn = e.target.closest('.calendar-day[data-date]');
+    if (!btn) return;
+    state.selectedDate = btn.dataset.date;
+    closeCalendar();
+    updateURL();
+    renderDate();
+    renderGames();
+  });
+
+  // Close calendar on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#calendar-dropdown') && !e.target.closest('#calendar-toggle')) {
+      closeCalendar();
     }
   });
 
