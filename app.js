@@ -67,6 +67,64 @@ const WBC_SHORT_NAMES = {
   'Dominican Republic': 'Dominican Rep.',
 };
 
+// ---- Telemetry (TelemetryDeck) ----
+
+const TD_APP_ID = '96D700D3-5F10-4BFB-BAAE-63A484584A7D';
+const TD_INGEST = 'https://nom.telemetrydeck.com/v2/';
+
+const telemetry = {
+  _sessionID: crypto.randomUUID(),
+
+  async _getUserHash() {
+    if (this._userHash) return this._userHash;
+    let uid;
+    try { uid = localStorage.getItem('wbc_uid'); } catch {}
+    if (!uid) {
+      uid = crypto.randomUUID();
+      try { localStorage.setItem('wbc_uid', uid); } catch {}
+    }
+    const encoded = new TextEncoder().encode(uid);
+    const hash = await crypto.subtle.digest('SHA-256', encoded);
+    this._userHash = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return this._userHash;
+  },
+
+  async signal(type, payload = {}) {
+    try {
+      const clientUser = await this._getUserHash();
+      await fetch(TD_INGEST, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([{
+          appID: TD_APP_ID,
+          clientUser,
+          sessionID: this._sessionID,
+          type,
+          payload,
+        }]),
+      });
+    } catch {
+      // Telemetry should never break the app
+    }
+  },
+};
+
+// Global error tracking
+window.addEventListener('error', (e) => {
+  telemetry.signal('error.javascript', {
+    message: e.message || 'Unknown error',
+    source: e.filename || '',
+    line: String(e.lineno || ''),
+    col: String(e.colno || ''),
+  });
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  telemetry.signal('error.unhandledRejection', {
+    message: String(e.reason || 'Unknown rejection'),
+  });
+});
+
 // ---- State ----
 
 let state = {
@@ -93,7 +151,15 @@ const screens = {
 
 async function apiFetch(path) {
   const res = await fetch(`${API_BASE}${path}`);
-  if (!res.ok) throw new Error(`API error: ${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const signalType = res.status === 429 ? 'error.rateLimited' : 'error.api';
+    telemetry.signal(signalType, {
+      status: String(res.status),
+      statusText: res.statusText,
+      path,
+    });
+    throw new Error(`API error: ${res.status} ${res.statusText}`);
+  }
   return res.json();
 }
 
@@ -130,6 +196,7 @@ async function refreshSchedule() {
   } catch (e) {
     // Silent fail on refresh — we still have old data
     console.warn('Schedule refresh failed:', e);
+    telemetry.signal('error.scheduleRefresh', { message: e.message || 'Unknown' });
   }
 }
 
@@ -254,8 +321,10 @@ function renderTeamGrid() {
 
 function selectTeam(teamId) {
   state.selectedTeamId = teamId;
-  if (!state.selectedDate) {
-    state.selectedDate = todayStr();
+  state.selectedDate = todayStr();
+  const team = MLB_TEAMS.find(t => t.id === teamId);
+  if (team) {
+    telemetry.signal('team.selected', { team: team.abbr, teamName: team.fullName });
   }
   try { localStorage.setItem('wbc_team', teamId); } catch {}
   updateURL();
@@ -658,8 +727,14 @@ async function init() {
     // Start polling for live scores
     startPolling();
 
+    telemetry.signal('app.loaded', {
+      teamsWithPlayers: String([...state.teamPlayerMap.keys()].length),
+      totalGames: String(state.schedule.length),
+    });
+
   } catch (err) {
     console.error('Init failed:', err);
+    telemetry.signal('error.initFailed', { message: err.message || 'Unknown' });
     $('#error-message').textContent = err.message || 'Could not reach the MLB Stats API. Please try again.';
     showScreen('error');
   }
