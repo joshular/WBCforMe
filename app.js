@@ -485,6 +485,7 @@ function renderGameCard(game, index) {
         </div>
       </div>
       ${playersHTML}
+      <a class="game-card-link" href="https://www.mlb.com/gameday/${game.gamePk}" target="_blank" rel="noopener">Gameday &#x2197;</a>
     </div>
   `;
 }

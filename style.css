@@ -401,6 +401,20 @@ body::before {
   border-color: var(--border-light);
 }
 
+.game-card-link {
+  display: block;
+  border-top: 1px solid var(--border);
+  padding: 8px 18px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.game-card-link:hover {
+  color: var(--accent);
+}
+
 .game-card-top {
   padding: 16px 18px 14px;
   display: flex;
