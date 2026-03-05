@@ -430,11 +430,11 @@ function renderGameCard(game, index) {
   if (isLive) {
     const inning = game.linescore?.currentInningOrdinal || '';
     const halfInning = game.linescore?.inningHalf || '';
-    statusHTML = `<span class="game-status-badge live">${halfInning} ${inning}</span>`;
-    scoreHTML = `<span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0}</span>`;
+    scoreHTML = `<span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0} <span class="game-inning-status">(${halfInning} ${inning})</span></span>`;
   } else if (isFinal) {
-    statusHTML = `<span class="game-status-badge final">Final</span>`;
-    scoreHTML = `<span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0}</span>`;
+    const totalInnings = game.linescore?.currentInning || 9;
+    const finalLabel = totalInnings > 9 ? `Final/${totalInnings}` : 'Final';
+    scoreHTML = `<span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0} <span class="game-inning-status">(${finalLabel})</span></span>`;
   } else {
     const gameTime = new Date(game.gameDate);
     const time = gameTime.toLocaleTimeString('en-US', {

@@ -473,6 +473,12 @@ body::before {
   text-align: center;
 }
 
+.game-inning-status {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
 .game-meta {
   display: flex;
   align-items: center;
