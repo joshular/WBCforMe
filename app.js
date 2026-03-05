@@ -72,20 +72,33 @@ const WBC_SHORT_NAMES = {
 const TD_APP_ID = '96D700D3-5F10-4BFB-BAAE-63A484584A7D';
 const TD_INGEST = 'https://nom.telemetrydeck.com/v2/';
 
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
 const telemetry = {
-  _sessionID: crypto.randomUUID(),
+  _sessionID: generateUUID(),
 
   async _getUserHash() {
     if (this._userHash) return this._userHash;
     let uid;
     try { uid = localStorage.getItem('wbc_uid'); } catch {}
     if (!uid) {
-      uid = crypto.randomUUID();
+      uid = generateUUID();
       try { localStorage.setItem('wbc_uid', uid); } catch {}
     }
-    const encoded = new TextEncoder().encode(uid);
-    const hash = await crypto.subtle.digest('SHA-256', encoded);
-    this._userHash = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (crypto.subtle) {
+      const encoded = new TextEncoder().encode(uid);
+      const hash = await crypto.subtle.digest('SHA-256', encoded);
+      this._userHash = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } else {
+      // Fallback: simple hash for non-secure contexts
+      this._userHash = uid.replace(/-/g, '');
+    }
     return this._userHash;
   },
 
