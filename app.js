@@ -51,7 +51,8 @@ const COUNTRY_FLAGS = {
   'Australia': '\u{1F1E6}\u{1F1FA}', 'Brazil': '\u{1F1E7}\u{1F1F7}', 'Canada': '\u{1F1E8}\u{1F1E6}',
   'Chinese Taipei': '\u{1F3F4}', 'Colombia': '\u{1F1E8}\u{1F1F4}', 'Cuba': '\u{1F1E8}\u{1F1FA}',
   'Czechia': '\u{1F1E8}\u{1F1FF}', 'Czech Republic': '\u{1F1E8}\u{1F1FF}',
-  'Dominican Republic': '\u{1F1E9}\u{1F1F4}', 'Great Britain': '\u{1F1EC}\u{1F1E7}',
+  'Dominican Republic': '\u{1F1E9}\u{1F1F4}', 'Dominican Rep.': '\u{1F1E9}\u{1F1F4}',
+  'Great Britain': '\u{1F1EC}\u{1F1E7}',
   'Israel': '\u{1F1EE}\u{1F1F1}', 'Italy': '\u{1F1EE}\u{1F1F9}', 'Japan': '\u{1F1EF}\u{1F1F5}',
   'Mexico': '\u{1F1F2}\u{1F1FD}', 'Kingdom of the Netherlands': '\u{1F1F3}\u{1F1F1}',
   'Netherlands': '\u{1F1F3}\u{1F1F1}', 'Nicaragua': '\u{1F1F3}\u{1F1EE}',
@@ -65,7 +66,64 @@ const WBC_SHORT_NAMES = {
   'Kingdom of the Netherlands': 'Netherlands',
   'Chinese Taipei': 'Chinese Taipei',
   'Dominican Republic': 'Dominican Rep.',
+  'Dominican Rep.': 'Dominican Rep.',
 };
+
+// ---- Internationalization ----
+
+const LOCALE = new URLSearchParams(location.search).get('lang') || (navigator.language?.startsWith('es') ? 'es' : 'en');
+const DATE_LOCALE = LOCALE === 'es' ? 'es' : 'en-US';
+
+const STRINGS = {
+  en: {
+    siteTitle: 'WBC for Me',
+    siteSubtitle: "Which MLB team's players do you want to follow?",
+    loadingText: 'Loading WBC data',
+    allTeams: 'All Teams',
+    schedule: 'Schedule',
+    tryAgain: 'Try Again',
+    errorTitle: 'Unable to load WBC data',
+    errorDefault: 'Could not reach the MLB Stats API. Please try again.',
+    noPlayers: 'No players in the WBC',
+    noGamesTitle: 'No games on this date',
+    noGamesDesc: (teamName) => `No ${teamName} players have WBC games scheduled for this day.`,
+    playerCount: (count, teamCount) => `${count} player${count !== 1 ? 's' : ''} across ${teamCount} WBC team${teamCount !== 1 ? 's' : ''}`,
+    teamCardLabel: (name, count) => `${name}, ${count} players in WBC`,
+    today: 'Today',
+    vs: 'vs',
+    final: 'Final',
+    gameday: 'Gameday',
+    americanLeague: 'American League',
+    nationalLeague: 'National League',
+    east: 'East', central: 'Central', west: 'West',
+    calendarDays: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+  },
+  es: {
+    siteTitle: 'WBC for Me',
+    siteSubtitle: '¿Qué jugadores de tu equipo de MLB quieres seguir?',
+    loadingText: 'Cargando datos del WBC',
+    allTeams: 'Todos los equipos',
+    schedule: 'Calendario',
+    tryAgain: 'Reintentar',
+    errorTitle: 'No se pudieron cargar los datos del WBC',
+    errorDefault: 'No se pudo conectar con la API de MLB Stats. Inténtalo de nuevo.',
+    noPlayers: 'Sin jugadores en el WBC',
+    noGamesTitle: 'No hay juegos en esta fecha',
+    noGamesDesc: (teamName) => `Los jugadores de ${teamName} no tienen juegos del WBC programados para este día.`,
+    playerCount: (count, teamCount) => `${count} jugador${count !== 1 ? 'es' : ''} en ${teamCount} equipo${teamCount !== 1 ? 's' : ''} del WBC`,
+    teamCardLabel: (name, count) => `${name}, ${count} jugadores en el WBC`,
+    today: 'Hoy',
+    vs: 'vs',
+    final: 'Final',
+    gameday: 'Gameday',
+    americanLeague: 'Liga Americana',
+    nationalLeague: 'Liga Nacional',
+    east: 'Este', central: 'Central', west: 'Oeste',
+    calendarDays: ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
+  },
+};
+
+function t(key) { return STRINGS[LOCALE][key]; }
 
 // ---- Telemetry (TelemetryDeck) ----
 
@@ -311,7 +369,7 @@ function renderCalendar() {
   const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const dayLabels = t('calendarDays');
   let html = '<div class="calendar-header">';
   html += dayLabels.map(d => `<span class="calendar-day-label">${d}</span>`).join('');
   html += '</div><div class="calendar-grid">';
@@ -367,9 +425,10 @@ function renderTeamGrid() {
   let cardIndex = 0;
 
   for (const league of leagues) {
-    html += `<div class="division-league-label">${league === 'AL' ? 'American League' : 'National League'}</div>`;
+    html += `<div class="division-league-label">${league === 'AL' ? t('americanLeague') : t('nationalLeague')}</div>`;
     for (const division of divisions) {
-      html += `<div class="division-label">${division}</div>`;
+      const divLabel = division === 'East' ? t('east') : division === 'Central' ? t('central') : t('west');
+      html += `<div class="division-label">${divLabel}</div>`;
       html += '<div class="division-grid">';
       const teams = MLB_TEAMS
         .filter(t => t.league === league && t.division === division)
@@ -378,7 +437,7 @@ function renderTeamGrid() {
         const count = state.teamPlayerMap?.get(team.id)?.length || 0;
         html += `
           <div class="team-card" data-team-id="${team.id}" role="button" tabindex="0"
-               aria-label="${team.fullName}, ${count} players in WBC"
+               aria-label="${STRINGS[LOCALE].teamCardLabel(team.fullName, count)}"
                style="animation-delay: ${cardIndex * 0.03}s">
             <div class="team-badge" style="background: ${team.color};">${team.abbr}</div>
             <div class="team-card-name">${team.fullName}</div>
@@ -430,13 +489,13 @@ function renderTeamView() {
   const wbcTeamCount = new Set(players.map(p => p.wbcTeamId)).size;
   const countEl = $('#player-count');
   if (players.length > 0) {
-    countEl.innerHTML = `<a href="#" id="roster-link" class="roster-link">${players.length} player${players.length !== 1 ? 's' : ''} across ${wbcTeamCount} WBC team${wbcTeamCount !== 1 ? 's' : ''}</a>`;
+    countEl.innerHTML = `<a href="#" id="roster-link" class="roster-link">${STRINGS[LOCALE].playerCount(players.length, wbcTeamCount)}</a>`;
     $('#roster-link').addEventListener('click', (e) => {
       e.preventDefault();
       showRoster();
     });
   } else {
-    countEl.textContent = 'No players in the WBC';
+    countEl.textContent = t('noPlayers');
   }
 
   // Date
@@ -452,13 +511,13 @@ function renderDate() {
   const date = parseLocalDate(dateStr);
   const isToday = dateStr === todayStr();
 
-  const formatted = date.toLocaleDateString('en-US', {
+  const formatted = date.toLocaleDateString(DATE_LOCALE, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
   });
 
-  $('#date-label').innerHTML = formatted + (isToday ? '<span class="today-badge">Today</span>' : '');
+  $('#date-label').innerHTML = formatted + (isToday ? `<span class="today-badge">${t('today')}</span>` : '');
 }
 
 function renderGames() {
@@ -470,8 +529,8 @@ function renderGames() {
     container.innerHTML = `
       <div class="no-games">
         <div class="no-games-icon">\u26BE</div>
-        <h3>No games on this date</h3>
-        <p>No ${team?.name || 'team'} players have WBC games scheduled for this day.</p>
+        <h3>${t('noGamesTitle')}</h3>
+        <p>${STRINGS[LOCALE].noGamesDesc(team?.name || 'team')}</p>
       </div>
     `;
     return;
@@ -488,7 +547,7 @@ function renderGameCard(game, index) {
 
   // Status display
   let statusHTML = '';
-  let scoreHTML = '<span class="game-vs">vs</span>';
+  let scoreHTML = `<span class="game-vs">${t('vs')}</span>`;
 
   const isLive = ['In Progress', 'Top', 'Bottom', 'Middle', 'End'].some(s =>
     game.status?.includes(s) || game.statusCode === 'I'
@@ -501,15 +560,15 @@ function renderGameCard(game, index) {
     scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0}</span><span class="game-inning-status">${halfInning} ${inning}</span></div>`;
   } else if (isFinal) {
     const totalInnings = game.linescore?.currentInning || 9;
-    const finalLabel = totalInnings > 9 ? `Final/${totalInnings}` : 'Final';
+    const finalLabel = totalInnings > 9 ? `${t('final')}/${totalInnings}` : t('final');
     scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0}</span><span class="game-inning-status">${finalLabel}</span></div>`;
   } else {
     const gameTime = new Date(game.gameDate);
-    const time = gameTime.toLocaleTimeString('en-US', {
+    const time = gameTime.toLocaleTimeString(DATE_LOCALE, {
       hour: 'numeric',
       minute: '2-digit',
     });
-    const tz = gameTime.toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop();
+    const tz = gameTime.toLocaleTimeString(DATE_LOCALE, { timeZoneName: 'short' }).split(' ').pop();
     statusHTML = `<span class="game-status-badge">${time} ${tz}</span>`;
   }
 
@@ -553,7 +612,7 @@ function renderGameCard(game, index) {
         </div>
       </div>
       ${playersHTML}
-      <a class="game-card-link" href="https://www.mlb.com/gameday/${game.gamePk}" target="_blank" rel="noopener">Gameday &#x2197;</a>
+      <a class="game-card-link" href="https://www.mlb.com/gameday/${game.gamePk}" target="_blank" rel="noopener">${t('gameday')} &#x2197;</a>
     </div>
   `;
 }
@@ -797,6 +856,17 @@ function startPolling() {
 // ---- Init ----
 
 async function init() {
+  // Set locale-dependent static text
+  document.documentElement.lang = LOCALE;
+  $('.loading-text').childNodes[0].textContent = t('loadingText');
+  $('.site-title').textContent = t('siteTitle');
+  $('.site-subtitle').textContent = t('siteSubtitle');
+  document.querySelectorAll('.site-title-sm').forEach(el => el.textContent = t('siteTitle'));
+  $('#error-screen h2').textContent = t('errorTitle');
+  $('#retry-btn').textContent = t('tryAgain');
+  $('#back-btn .btn-label').textContent = t('allTeams');
+  $('#roster-back-btn .btn-label').textContent = t('schedule');
+
   showScreen('loading');
 
   try {
@@ -839,7 +909,7 @@ async function init() {
   } catch (err) {
     console.error('Init failed:', err);
     telemetry.signal('error.initFailed', { message: err.message || 'Unknown' });
-    $('#error-message').textContent = err.message || 'Could not reach the MLB Stats API. Please try again.';
+    $('#error-message').textContent = err.message || t('errorDefault');
     showScreen('error');
   }
 }
