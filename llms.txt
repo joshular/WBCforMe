@@ -1,0 +1,16 @@
+# WBC for Me
+
+> See which players from your favorite MLB team are playing in the World Baseball Classic today.
+
+WBC for Me is a free web app at https://wbcforme.com that lets baseball fans pick any MLB team and see which of that team's players are participating in the World Baseball Classic (WBC). It shows the daily game schedule, rosters by country, and game scores.
+
+## Features
+- Pick any MLB team to see their players in the WBC
+- Daily schedule showing which WBC games feature your team's players
+- Full rosters for each WBC country team
+- Live scores and game status
+- Available in English and Spanish
+- Free, no ads, no sign-up required
+
+## How it works
+Data comes from the MLB Stats API. The site is a single-page app built with plain HTML, CSS, and JavaScript — no frameworks, no build step.
