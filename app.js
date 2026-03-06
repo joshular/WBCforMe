@@ -267,7 +267,7 @@ async function refreshSchedule() {
   } catch (e) {
     // Silent fail on refresh — we still have old data
     console.warn('Schedule refresh failed:', e);
-    telemetry.signal('error.scheduleRefresh', { message: e.message || 'Unknown' });
+    try { telemetry.signal('error.scheduleRefresh', { message: e.message || 'Unknown' }); } catch {}
   }
 }
 
@@ -316,10 +316,10 @@ function getGamesForTeamOnDate(mlbTeamId, dateStr) {
       return wbcTeamIds.has(awayId) || wbcTeamIds.has(homeId);
     })
     .map(game => {
-      const awayId = game.teams.away.team.id;
-      const homeId = game.teams.home.team.id;
-      const awayName = game.teams.away.team.name || game.teams.away.team.teamName || '';
-      const homeName = game.teams.home.team.name || game.teams.home.team.teamName || '';
+      const awayId = game.teams?.away?.team?.id;
+      const homeId = game.teams?.home?.team?.id;
+      const awayName = game.teams?.away?.team?.name || game.teams?.away?.team?.teamName || '';
+      const homeName = game.teams?.home?.team?.name || game.teams?.home?.team?.teamName || '';
 
       const awayPlayers = players.filter(p => p.wbcTeamId === awayId);
       const homePlayers = players.filter(p => p.wbcTeamId === homeId);
@@ -540,10 +540,10 @@ function renderGames() {
 }
 
 function renderGameCard(game, index) {
-  const awayFlag = getFlag(game.away.name);
-  const homeFlag = getFlag(game.home.name);
-  const awayShort = getShortName(game.away.name);
-  const homeShort = getShortName(game.home.name);
+  const awayFlag = getFlag(game.away?.name || '');
+  const homeFlag = getFlag(game.home?.name || '');
+  const awayShort = getShortName(game.away?.name || '');
+  const homeShort = getShortName(game.home?.name || '');
 
   // Status display
   let statusHTML = '';
@@ -557,19 +557,21 @@ function renderGameCard(game, index) {
   if (isLive) {
     const inning = game.linescore?.currentInningOrdinal || '';
     const halfInning = game.linescore?.inningHalf || '';
-    scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0}</span><span class="game-inning-status">${halfInning} ${inning}</span></div>`;
+    scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away?.score ?? 0} - ${game.home?.score ?? 0}</span><span class="game-inning-status">${halfInning} ${inning}</span></div>`;
   } else if (isFinal) {
     const totalInnings = game.linescore?.currentInning || 9;
     const finalLabel = totalInnings > 9 ? `${t('final')}/${totalInnings}` : t('final');
-    scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away.score ?? 0} - ${game.home.score ?? 0}</span><span class="game-inning-status">${finalLabel}</span></div>`;
+    scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away?.score ?? 0} - ${game.home?.score ?? 0}</span><span class="game-inning-status">${finalLabel}</span></div>`;
   } else {
     const gameTime = new Date(game.gameDate);
-    const time = gameTime.toLocaleTimeString(DATE_LOCALE, {
-      hour: 'numeric',
-      minute: '2-digit',
-    });
-    const tz = gameTime.toLocaleTimeString(DATE_LOCALE, { timeZoneName: 'short' }).split(' ').pop();
-    statusHTML = `<span class="game-status-badge">${time} ${tz}</span>`;
+    if (!isNaN(gameTime)) {
+      const time = gameTime.toLocaleTimeString(DATE_LOCALE, {
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+      const tz = gameTime.toLocaleTimeString(DATE_LOCALE, { timeZoneName: 'short' }).split(' ').pop();
+      statusHTML = `<span class="game-status-badge">${time} ${tz}</span>`;
+    }
   }
 
   // Meta line
@@ -875,10 +877,20 @@ async function init() {
 
     // Fetch rosters and schedule in parallel
     const rosterPromises = state.wbcTeams.map(t => fetchRoster(t.id));
-    const [rosterResults, schedule] = await Promise.all([
-      Promise.all(rosterPromises),
+    const [rosterSettled, schedule] = await Promise.all([
+      Promise.allSettled(rosterPromises),
       fetchSchedule(),
     ]);
+
+    // Use successful rosters, skip failed ones so one bad roster doesn't crash the app
+    const rosterResults = rosterSettled
+      .filter(r => r.status === 'fulfilled')
+      .map(r => r.value);
+    const failedCount = rosterSettled.filter(r => r.status === 'rejected').length;
+    if (failedCount > 0) {
+      console.warn(`${failedCount} roster fetch(es) failed`);
+      telemetry.signal('error.rosterPartial', { failedCount: String(failedCount) });
+    }
 
     state.schedule = schedule;
     state.teamPlayerMap = buildTeamPlayerMap(state.wbcTeams, rosterResults);
