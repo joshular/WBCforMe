@@ -205,6 +205,7 @@ let state = {
   selectedTeamId: null,
   selectedDate: null,
   pollTimer: null,
+  previousScreen: null,
 };
 
 // ---- DOM refs ----
@@ -215,6 +216,7 @@ const screens = {
   teamSelect: $('#team-select-screen'),
   teamView: $('#team-view-screen'),
   roster: $('#roster-screen'),
+  about: $('#about-screen'),
   error: $('#error-screen'),
 };
 
@@ -414,6 +416,14 @@ function showScreen(name) {
   for (const [key, el] of Object.entries(screens)) {
     el.classList.toggle('active', key === name);
   }
+}
+
+function showAbout() {
+  // Remember which screen we came from
+  for (const [key, el] of Object.entries(screens)) {
+    if (el.classList.contains('active')) { state.previousScreen = key; break; }
+  }
+  showScreen('about');
 }
 
 function renderTeamGrid() {
@@ -777,6 +787,19 @@ function setupEvents() {
     showScreen('teamView');
   });
 
+  // About buttons
+  document.querySelectorAll('.info-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showAbout();
+    });
+  });
+
+  // About back button
+  $('#about-back-btn').addEventListener('click', () => {
+    showScreen(state.previousScreen || 'teamSelect');
+  });
+
   // Date navigation
   $('#prev-day').addEventListener('click', () => {
     state.selectedDate = shiftDate(state.selectedDate, -1);
@@ -861,9 +884,9 @@ async function init() {
   // Set locale-dependent static text
   document.documentElement.lang = LOCALE;
   $('.loading-text').childNodes[0].textContent = t('loadingText');
-  $('.site-title').textContent = t('siteTitle');
+  $('.site-title').childNodes[0].textContent = t('siteTitle') + ' ';
   $('.site-subtitle').textContent = t('siteSubtitle');
-  document.querySelectorAll('.site-title-sm').forEach(el => el.textContent = t('siteTitle'));
+  document.querySelectorAll('.site-title-sm').forEach(el => el.childNodes[0].textContent = t('siteTitle') + ' ');
   $('#error-screen h2').textContent = t('errorTitle');
   $('#retry-btn').textContent = t('tryAgain');
   $('#back-btn .btn-label').textContent = t('allTeams');

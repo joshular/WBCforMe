@@ -846,6 +846,90 @@ body::before {
   background: var(--accent-glow);
 }
 
+/* ---- Info Button ---- */
+.info-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  vertical-align: middle;
+  transition: color var(--transition);
+  line-height: 1;
+}
+
+.info-btn:hover {
+  color: var(--text-secondary);
+}
+
+.info-btn-sm {
+  margin-left: 2px;
+}
+
+/* ---- About Screen ---- */
+#about-screen {
+  display: none;
+  height: 100dvh;
+  align-items: center;
+  justify-content: center;
+}
+#about-screen.active {
+  display: flex;
+}
+
+.about-content {
+  width: 100%;
+  max-width: 400px;
+}
+
+.about-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-bottom: 20px;
+  transition: color var(--transition);
+}
+
+.about-back-btn:hover { color: var(--text-primary); }
+
+.about-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+}
+
+.about-card h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.about-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.about-card a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--transition);
+}
+
+.about-card a:hover {
+  border-bottom-color: var(--accent);
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 640px) {
   .select-header { padding: 32px 0 24px; }
