@@ -49,7 +49,7 @@ const MLB_TEAMS = [
 // Country code → emoji flag mapping
 const COUNTRY_FLAGS = {
   'Australia': '\u{1F1E6}\u{1F1FA}', 'Brazil': '\u{1F1E7}\u{1F1F7}', 'Canada': '\u{1F1E8}\u{1F1E6}',
-  'Chinese Taipei': '\u{1F3F4}', 'Colombia': '\u{1F1E8}\u{1F1F4}', 'Cuba': '\u{1F1E8}\u{1F1FA}',
+  'Chinese Taipei': '\u{1F1F9}\u{1F1FC}', 'Colombia': '\u{1F1E8}\u{1F1F4}', 'Cuba': '\u{1F1E8}\u{1F1FA}',
   'Czechia': '\u{1F1E8}\u{1F1FF}', 'Czech Republic': '\u{1F1E8}\u{1F1FF}',
   'Dominican Republic': '\u{1F1E9}\u{1F1F4}', 'Dominican Rep.': '\u{1F1E9}\u{1F1F4}',
   'Great Britain': '\u{1F1EC}\u{1F1E7}',
@@ -562,7 +562,7 @@ function renderGameCard(game, index) {
   const isLive = ['In Progress', 'Top', 'Bottom', 'Middle', 'End'].some(s =>
     game.status?.includes(s) || game.statusCode === 'I'
   );
-  const isFinal = game.status === 'Final' || game.status === 'Game Over' || game.statusCode === 'F';
+  const isFinal = game.status === 'Final' || game.status === 'Game Over' || game.status === 'Completed Early' || game.statusCode === 'F' || game.statusCode === 'FM';
 
   if (isLive) {
     const inning = game.linescore?.currentInningOrdinal || '';
@@ -570,7 +570,8 @@ function renderGameCard(game, index) {
     scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away?.score ?? 0} - ${game.home?.score ?? 0}</span><span class="game-inning-status">${halfInning} ${inning}</span></div>`;
   } else if (isFinal) {
     const totalInnings = game.linescore?.currentInning || 9;
-    const finalLabel = totalInnings > 9 ? `${t('final')}/${totalInnings}` : t('final');
+    const isCompletedEarly = game.status === 'Completed Early' || game.statusCode === 'FM';
+    const finalLabel = isCompletedEarly ? `${t('final')} (completed early)` : totalInnings > 9 ? `${t('final')}/${totalInnings}` : t('final');
     scoreHTML = `<div class="game-score-block"><span class="game-score-center">${game.away?.score ?? 0} - ${game.home?.score ?? 0}</span><span class="game-inning-status">${finalLabel}</span></div>`;
   } else {
     const gameTime = new Date(game.gameDate);
